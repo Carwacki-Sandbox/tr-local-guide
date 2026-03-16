@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 
 // ─── THEME ────────────────────────────────────────────────────────────────────
 const T = {
@@ -242,8 +242,6 @@ function PriceBadge({price,free}) {
     </span>
   );
 }
-
-// ─── SECTION DIVIDER ─────────────────────────────────────────────────────────
 function ForestDivider() {
   return (
     <div style={{textAlign:"center",margin:"6px 0",opacity:0.18,fontSize:13,letterSpacing:8,color:T.leaf,userSelect:"none"}}>
@@ -252,14 +250,28 @@ function ForestDivider() {
   );
 }
 
+// ─── HIGHLIGHT — wraps matched text in an amber highlight span ────────────────
+function Highlight({ text, query }) {
+  if (!query) return <>{text}</>;
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <span style={{background:T.amber+"44",color:T.amberGlow,borderRadius:2,padding:"0 1px"}}>
+        {text.slice(idx, idx + query.length)}
+      </span>
+      {text.slice(idx + query.length)}
+    </>
+  );
+}
+
 // ─── WEATHER TAB ──────────────────────────────────────────────────────────────
 function DayCard({day,selected,onClick}) {
   const great = day.precip<=20 && (day.high??day.low)>=65;
   return (
     <button onClick={onClick} style={{
-      background: selected
-        ? `linear-gradient(160deg,${T.mossLight},${T.moss})`
-        : day.isToday ? `rgba(74,107,42,0.18)` : `rgba(42,30,15,0.5)`,
+      background: selected ? `linear-gradient(160deg,${T.mossLight},${T.moss})` : day.isToday ? `rgba(74,107,42,0.18)` : `rgba(42,30,15,0.5)`,
       border:`1.5px solid ${selected?T.canopy:day.isToday?"rgba(106,156,56,0.5)":"rgba(58,42,24,0.8)"}`,
       borderRadius:12,padding:"12px 6px",cursor:"pointer",textAlign:"center",
       transition:"all 0.2s",flex:1,minWidth:0,position:"relative",
@@ -276,13 +288,13 @@ function DayCard({day,selected,onClick}) {
 }
 
 function WeatherView() {
-  const [weather,  setWeather]  = useState([]);
-  const [loading,  setLoading]  = useState(true);
-  const [err,      setErr]      = useState(null);
-  const [selDay,   setSelDay]   = useState(0);
-  const [category, setCategory] = useState("All");
-  const [hovered,  setHovered]  = useState(null);
-  const [updated,  setUpdated]  = useState(null);
+  const [weather,setWeather]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [err,setErr]=useState(null);
+  const [selDay,setSelDay]=useState(0);
+  const [category,setCategory]=useState("All");
+  const [hovered,setHovered]=useState(null);
+  const [updated,setUpdated]=useState(null);
 
   useEffect(()=>{
     fetch(`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,windspeed_10m_max,windgusts_10m_max,weathercode&temperature_unit=fahrenheit&windspeed_unit=mph&timezone=America%2FNew_York&forecast_days=7`)
@@ -325,8 +337,8 @@ function WeatherView() {
   if(err) return (
     <div style={{marginTop:40,padding:20,background:`rgba(192,80,48,0.08)`,border:`1px solid rgba(192,80,48,0.25)`,borderRadius:14,fontFamily:FONT.mono,color:T.rust,textAlign:"center"}}>
       <div style={{fontSize:28,marginBottom:8}}>⚠️</div>
-      Could not load live weather ({err})
-      <br/><span style={{fontSize:11,color:T.mist}}>Check your connection and reload</span>
+      Could not load live weather ({err})<br/>
+      <span style={{fontSize:11,color:T.mist}}>Check your connection and reload</span>
     </div>
   );
 
@@ -337,7 +349,6 @@ function WeatherView() {
         {updated&&<div style={{fontSize:9,color:T.mossLight,fontFamily:FONT.mono}}>Updated {updated}</div>}
       </div>
       <div style={{marginTop:8,display:"flex",gap:5}}>{weather.map((d,i)=><DayCard key={i} day={d} selected={selDay===i} onClick={()=>setSelDay(i)}/>)}</div>
-
       {day&&<div style={{marginTop:14,background:`linear-gradient(135deg,rgba(45,61,26,0.5),rgba(26,18,8,0.6))`,border:`1px solid rgba(74,107,42,0.35)`,borderRadius:16,padding:"16px 18px",backdropFilter:"blur(4px)"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
@@ -359,7 +370,6 @@ function WeatherView() {
         {day.windows.length>0&&<div style={{marginTop:12,display:"flex",gap:8,flexWrap:"wrap"}}>{day.windows.map((w,i)=><div key={i} style={{background:"rgba(106,156,56,0.12)",border:"1px solid rgba(106,156,56,0.3)",borderRadius:8,padding:"4px 11px",fontSize:11,color:T.sage,fontFamily:FONT.mono}}>🌿 {w.start}–{w.end} · {w.label}</div>)}</div>}
         {day.warnings.length>0&&<div style={{marginTop:8,display:"flex",gap:8,flexWrap:"wrap"}}>{day.warnings.map((w,i)=><div key={i} style={{background:"rgba(200,132,58,0.08)",border:"1px solid rgba(200,132,58,0.25)",borderRadius:8,padding:"4px 11px",fontSize:11,color:T.amberGlow,fontFamily:FONT.mono}}>⚠ {w.time}: {w.note}</div>)}</div>}
       </div>}
-
       {topPick&&topPick.score>60&&<div style={{marginTop:14,background:`linear-gradient(135deg,${T.barkMid},${T.bark})`,border:`1.5px solid ${T.amber}55`,borderRadius:16,padding:"14px 18px",display:"flex",alignItems:"center",gap:12,boxShadow:`0 4px 24px rgba(200,132,58,0.12)`}}>
         <div style={{fontSize:28}}>{topPick.icon}</div>
         <div style={{flex:1}}>
@@ -369,14 +379,12 @@ function WeatherView() {
         </div>
         <div style={{background:T.amber,color:T.bark,borderRadius:10,padding:"5px 11px",fontWeight:700,fontSize:16,fontFamily:FONT.display,minWidth:42,textAlign:"center"}}>{topPick.score}</div>
       </div>}
-
       <div style={{marginTop:20}}>
         <div style={{fontSize:10,color:T.canopy,fontFamily:FONT.mono,letterSpacing:2,marginBottom:8,textTransform:"uppercase"}}>Filter by Category</div>
         <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{cats.map(cat=>(
           <button key={cat} onClick={()=>setCategory(cat)} style={{background:category===cat?T.canopy:`rgba(42,30,15,0.5)`,color:category===cat?T.cream:T.mist,border:`1px solid ${category===cat?T.canopy:"rgba(58,42,24,0.8)"}`,borderRadius:20,padding:"4px 12px",fontSize:11,fontWeight:category===cat?600:400,cursor:"pointer",fontFamily:FONT.body,transition:"all 0.15s"}}>{cat}</button>
         ))}</div>
       </div>
-
       <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>{scored.map(act=>{
         const great=act.score>=80,ok=act.score>=55,tc=great?T.fern:ok?T.amberWarm:T.rust;
         return (
@@ -420,7 +428,6 @@ function DateBubble({event}) {
     </div>
   );
 }
-
 function EventCard({event,expanded,onToggle}) {
   const meta=CATEGORY_META[event.category]||{icon:"📅",color:T.mist},soon=isThisWeekEvent(event);
   return (
@@ -457,7 +464,6 @@ function EventCard({event,expanded,onToggle}) {
     </div>
   );
 }
-
 function MonthTimeline({events,selectedDay,onSelectDay}) {
   const days=Array.from({length:31},(_,i)=>i+1);
   const eventDays=new Set(events.flatMap(e=>e.dates.filter(d=>d.month===TODAY.month).map(d=>d.day)));
@@ -474,15 +480,14 @@ function MonthTimeline({events,selectedDay,onSelectDay}) {
     </div>
   );
 }
-
 function EventsView() {
-  const [activeCategory, setActiveCategory] = useState("All");
-  const [showFreeOnly,   setShowFreeOnly]   = useState(false);
-  const [showEditorOnly, setShowEditorOnly] = useState(false);
-  const [showUpcoming,   setShowUpcoming]   = useState(true);
-  const [selectedDay,    setSelectedDay]    = useState(null);
-  const [expandedId,     setExpandedId]     = useState(null);
-  const [searchQuery,    setSearchQuery]    = useState("");
+  const [activeCategory,setActiveCategory]=useState("All");
+  const [showFreeOnly,setShowFreeOnly]=useState(false);
+  const [showEditorOnly,setShowEditorOnly]=useState(false);
+  const [showUpcoming,setShowUpcoming]=useState(true);
+  const [selectedDay,setSelectedDay]=useState(null);
+  const [expandedId,setExpandedId]=useState(null);
+  const [searchQuery,setSearchQuery]=useState("");
   const cats=["All",...Object.keys(CATEGORY_META)];
   const filtered=useMemo(()=>EVENTS.filter(e=>{
     if(showUpcoming&&!isUpcoming(e))return false;
@@ -494,29 +499,14 @@ function EventsView() {
     return true;
   }).sort((a,b)=>{const da=a.dates[0],db=b.dates[0];return(da.month*100+da.day)-(db.month*100+db.day);}),[activeCategory,showFreeOnly,showEditorOnly,showUpcoming,selectedDay,searchQuery]);
   const twc=filtered.filter(isThisWeekEvent).length;
-
   return (
     <div style={{paddingTop:4}}>
       <MonthTimeline events={EVENTS.filter(isUpcoming)} selectedDay={selectedDay} onSelectDay={setSelectedDay}/>
-      <div style={{marginTop:14}}>
-        <input type="text" placeholder="Search events, venues, tags…" value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} style={{width:"100%",boxSizing:"border-box",background:"rgba(26,18,8,0.6)",border:`1px solid rgba(74,107,42,0.25)`,borderRadius:10,padding:"9px 14px",fontSize:12,color:T.parchment,fontFamily:FONT.body,outline:"none","::placeholder":{color:T.canopy}}}/>
-      </div>
-      <div style={{marginTop:12}}>
-        <div style={{fontSize:9,color:T.canopy,fontFamily:FONT.mono,letterSpacing:2,marginBottom:7}}>CATEGORY</div>
-        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{cats.map(cat=>{const meta=CATEGORY_META[cat],active=activeCategory===cat;return <button key={cat} onClick={()=>setActiveCategory(cat)} style={{background:active?(meta?meta.color+"22":"rgba(74,107,42,0.2)"):"rgba(26,18,8,0.5)",color:active?(meta?meta.color:T.fern):T.mist,border:`1px solid ${active?(meta?meta.color+"55":"rgba(106,156,56,0.4)"):"rgba(58,42,24,0.6)"}`,borderRadius:18,padding:"4px 12px",fontSize:10,fontWeight:active?600:400,cursor:"pointer",fontFamily:FONT.body,transition:"all 0.15s"}}>{meta?`${meta.icon} `:""}{cat}</button>;})}</div>
-      </div>
-      <div style={{marginTop:10,display:"flex",gap:8,flexWrap:"wrap"}}>
-        {[{label:"Upcoming",state:showUpcoming,toggle:()=>setShowUpcoming(s=>!s)},{label:"★ Editor's picks",state:showEditorOnly,toggle:()=>setShowEditorOnly(s=>!s)},{label:"Free entry",state:showFreeOnly,toggle:()=>setShowFreeOnly(s=>!s)},selectedDay!==null&&{label:`${MONTHS_SHORT[TODAY.month-1]} ${selectedDay} ×`,state:true,toggle:()=>setSelectedDay(null)}].filter(Boolean).map(({label,state,toggle})=><button key={label} onClick={toggle} style={{background:state?"rgba(74,107,42,0.2)":"rgba(26,18,8,0.5)",color:state?T.fern:T.mist,border:`1px solid ${state?"rgba(106,156,56,0.3)":"rgba(58,42,24,0.6)"}`,borderRadius:8,padding:"4px 11px",fontSize:10,cursor:"pointer",fontFamily:FONT.body}}>{label}</button>)}
-      </div>
-      <div style={{marginTop:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <div style={{fontSize:10,color:T.canopy,fontFamily:FONT.mono}}>{filtered.length} EVENT{filtered.length!==1?"S":""}{twc>0?` · ${twc} THIS WEEK`:""}</div>
-        {(selectedDay||searchQuery||activeCategory!=="All"||showFreeOnly||showEditorOnly)&&<button onClick={()=>{setSelectedDay(null);setSearchQuery("");setActiveCategory("All");setShowFreeOnly(false);setShowEditorOnly(false);}} style={{fontSize:9,fontFamily:FONT.mono,color:T.rust,background:"rgba(192,80,48,0.07)",border:"1px solid rgba(192,80,48,0.2)",borderRadius:6,padding:"3px 9px",cursor:"pointer"}}>clear filters</button>}
-      </div>
-      <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:7}}>
-        {filtered.length===0
-          ? <div style={{textAlign:"center",padding:"40px 0",fontSize:13,color:T.canopy,fontFamily:FONT.body,fontStyle:"italic"}}>No events match your filters.</div>
-          : filtered.map(ev=><EventCard key={ev.id} event={ev} expanded={expandedId===ev.id} onToggle={()=>setExpandedId(expandedId===ev.id?null:ev.id)}/>)}
-      </div>
+      <div style={{marginTop:14}}><input type="text" placeholder="Search events, venues, tags…" value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} style={{width:"100%",boxSizing:"border-box",background:"rgba(26,18,8,0.6)",border:`1px solid rgba(74,107,42,0.25)`,borderRadius:10,padding:"9px 14px",fontSize:12,color:T.parchment,fontFamily:FONT.body,outline:"none"}}/></div>
+      <div style={{marginTop:12}}><div style={{fontSize:9,color:T.canopy,fontFamily:FONT.mono,letterSpacing:2,marginBottom:7}}>CATEGORY</div><div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{cats.map(cat=>{const meta=CATEGORY_META[cat],active=activeCategory===cat;return <button key={cat} onClick={()=>setActiveCategory(cat)} style={{background:active?(meta?meta.color+"22":"rgba(74,107,42,0.2)"):"rgba(26,18,8,0.5)",color:active?(meta?meta.color:T.fern):T.mist,border:`1px solid ${active?(meta?meta.color+"55":"rgba(106,156,56,0.4)"):"rgba(58,42,24,0.6)"}`,borderRadius:18,padding:"4px 12px",fontSize:10,fontWeight:active?600:400,cursor:"pointer",fontFamily:FONT.body,transition:"all 0.15s"}}>{meta?`${meta.icon} `:""}{cat}</button>;})}</div></div>
+      <div style={{marginTop:10,display:"flex",gap:8,flexWrap:"wrap"}}>{[{label:"Upcoming",state:showUpcoming,toggle:()=>setShowUpcoming(s=>!s)},{label:"★ Editor's picks",state:showEditorOnly,toggle:()=>setShowEditorOnly(s=>!s)},{label:"Free entry",state:showFreeOnly,toggle:()=>setShowFreeOnly(s=>!s)},selectedDay!==null&&{label:`${MONTHS_SHORT[TODAY.month-1]} ${selectedDay} ×`,state:true,toggle:()=>setSelectedDay(null)}].filter(Boolean).map(({label,state,toggle})=><button key={label} onClick={toggle} style={{background:state?"rgba(74,107,42,0.2)":"rgba(26,18,8,0.5)",color:state?T.fern:T.mist,border:`1px solid ${state?"rgba(106,156,56,0.3)":"rgba(58,42,24,0.6)"}`,borderRadius:8,padding:"4px 11px",fontSize:10,cursor:"pointer",fontFamily:FONT.body}}>{label}</button>)}</div>
+      <div style={{marginTop:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{fontSize:10,color:T.canopy,fontFamily:FONT.mono}}>{filtered.length} EVENT{filtered.length!==1?"S":""}{twc>0?` · ${twc} THIS WEEK`:""}</div>{(selectedDay||searchQuery||activeCategory!=="All"||showFreeOnly||showEditorOnly)&&<button onClick={()=>{setSelectedDay(null);setSearchQuery("");setActiveCategory("All");setShowFreeOnly(false);setShowEditorOnly(false);}} style={{fontSize:9,fontFamily:FONT.mono,color:T.rust,background:"rgba(192,80,48,0.07)",border:"1px solid rgba(192,80,48,0.2)",borderRadius:6,padding:"3px 9px",cursor:"pointer"}}>clear filters</button>}</div>
+      <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:7}}>{filtered.length===0?<div style={{textAlign:"center",padding:"40px 0",fontSize:13,color:T.canopy,fontFamily:FONT.body,fontStyle:"italic"}}>No events match your filters.</div>:filtered.map(ev=><EventCard key={ev.id} event={ev} expanded={expandedId===ev.id} onToggle={()=>setExpandedId(expandedId===ev.id?null:ev.id)}/>)}</div>
     </div>
   );
 }
@@ -534,8 +524,7 @@ function GameRow({game,teamColor,ticketsUrl}) {
       </div>
       <div style={{flex:1,minWidth:0}}>
         <div style={{fontSize:12,fontWeight:500,color:T.parchment,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",fontFamily:FONT.body}}>
-          <span style={{fontSize:10,color:T.canopy,fontFamily:FONT.mono}}>vs</span>
-          {game.opponent||"TBD"}
+          <span style={{fontSize:10,color:T.canopy,fontFamily:FONT.mono}}>vs</span>{game.opponent||"TBD"}
           {(game.note||game.promo)&&<span style={{fontSize:9,fontFamily:FONT.mono,color:teamColor,background:`${teamColor}14`,border:`1px solid ${teamColor}33`,borderRadius:8,padding:"1px 7px"}}>{game.note||game.promo}</span>}
         </div>
         <div style={{fontSize:10,color:T.canopy,fontFamily:FONT.mono,marginTop:2}}>{game.time} · {game.venue||"Bon Secours Wellness Arena"}</div>
@@ -549,7 +538,6 @@ function GameRow({game,teamColor,ticketsUrl}) {
     </div>
   );
 }
-
 function TeamCard({team,expanded,onToggle}) {
   const upcoming=team.games.filter(g=>(g.month>TODAY.month)||(g.month===TODAY.month&&g.day>=TODAY.day)),nextGame=upcoming[0];
   return (
@@ -583,7 +571,6 @@ function TeamCard({team,expanded,onToggle}) {
     </div>
   );
 }
-
 function SportsView() {
   const [expandedTeam,setExpandedTeam]=useState("rabbits");
   const allUpcoming=TEAMS.flatMap(t=>t.games.filter(g=>(g.month>TODAY.month)||(g.month===TODAY.month&&g.day>=TODAY.day)).map(g=>({...g,teamId:t.id,teamName:t.name,teamColor:t.color,teamIcon:t.icon,teamTicketsUrl:t.ticketsUrl}))).sort((a,b)=>(a.month*100+a.day)-(b.month*100+b.day));
@@ -601,15 +588,14 @@ function SportsView() {
           </div>
         ))}</div>
       </div>}
-      <div style={{marginTop:14,display:"flex",gap:10,flexWrap:"wrap"}}>{TEAMS.map(t=>{const uc=t.games.filter(g=>(g.month>TODAY.month)||(g.month===TODAY.month&&g.day>=TODAY.day)).length;return <div key={t.id} onClick={()=>setExpandedTeam(t.id===expandedTeam?null:t.id)} style={{flex:1,minWidth:90,textAlign:"center",padding:"10px 8px",background:expandedTeam===t.id?`${t.color}14`:"rgba(26,18,8,0.4)",border:`1px solid ${expandedTeam===t.id?t.color+"44":"rgba(58,42,24,0.5)"}`,borderRadius:10,cursor:"pointer",transition:"all 0.15s"}}><div style={{fontSize:20}}>{t.icon}</div><div style={{fontSize:10,fontWeight:600,color:T.parchment,marginTop:3,fontFamily:FONT.body}}>{t.name}</div><div style={{fontSize:16,fontWeight:800,color:t.color,fontFamily:FONT.display}}>{uc}</div><div style={{fontSize:8,color:T.canopy,fontFamily:FONT.mono}}>HOME GAMES</div></div>;})}
-      </div>
+      <div style={{marginTop:14,display:"flex",gap:10,flexWrap:"wrap"}}>{TEAMS.map(t=>{const uc=t.games.filter(g=>(g.month>TODAY.month)||(g.month===TODAY.month&&g.day>=TODAY.day)).length;return <div key={t.id} onClick={()=>setExpandedTeam(t.id===expandedTeam?null:t.id)} style={{flex:1,minWidth:90,textAlign:"center",padding:"10px 8px",background:expandedTeam===t.id?`${t.color}14`:"rgba(26,18,8,0.4)",border:`1px solid ${expandedTeam===t.id?t.color+"44":"rgba(58,42,24,0.5)"}`,borderRadius:10,cursor:"pointer",transition:"all 0.15s"}}><div style={{fontSize:20}}>{t.icon}</div><div style={{fontSize:10,fontWeight:600,color:T.parchment,marginTop:3,fontFamily:FONT.body}}>{t.name}</div><div style={{fontSize:16,fontWeight:800,color:t.color,fontFamily:FONT.display}}>{uc}</div><div style={{fontSize:8,color:T.canopy,fontFamily:FONT.mono}}>HOME GAMES</div></div>;})}</div>
       <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>{TEAMS.map(t=><TeamCard key={t.id} team={t} expanded={expandedTeam===t.id} onToggle={()=>setExpandedTeam(expandedTeam===t.id?null:t.id)}/>)}</div>
     </div>
   );
 }
 
 // ─── BREWERY TAB ──────────────────────────────────────────────────────────────
-function ShowRow({show,color}) {
+function ShowRow({show, color, query=""}) {
   const isPast=(show.month<TODAY.month)||(show.month===TODAY.month&&show.day<TODAY.day),
         isThisWeek=!isPast&&((show.month-TODAY.month)*30+(show.day-TODAY.day))<=7,
         isFree=show.price==="Free";
@@ -620,8 +606,12 @@ function ShowRow({show,color}) {
         <div style={{fontSize:18,fontWeight:800,color:T.cream,lineHeight:1,fontFamily:FONT.display}}>{show.day}</div>
       </div>
       <div style={{flex:1,minWidth:0}}>
-        <div style={{fontSize:12,fontWeight:500,color:T.parchment,marginBottom:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontFamily:FONT.body}}>{show.artist}</div>
-        <div style={{fontSize:10,color:T.canopy,fontFamily:FONT.mono}}>{show.time} · <span style={{color:T.dewDim}}>{show.genre}</span></div>
+        <div style={{fontSize:12,fontWeight:500,color:T.parchment,marginBottom:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontFamily:FONT.body}}>
+          <Highlight text={show.artist} query={query}/>
+        </div>
+        <div style={{fontSize:10,color:T.canopy,fontFamily:FONT.mono}}>
+          {show.time} · <span style={{color:T.dewDim}}><Highlight text={show.genre} query={query}/></span>
+        </div>
       </div>
       <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
         <span style={{fontSize:10,fontFamily:FONT.mono,fontWeight:600,color:isFree?T.fern:T.parchment}}>{show.price}</span>
@@ -632,21 +622,40 @@ function ShowRow({show,color}) {
   );
 }
 
-function BreweryCard({brewery}) {
-  const [expanded,setExpanded]=useState(false);
-  const upcoming=brewery.shows.filter(s=>(s.month>TODAY.month)||(s.month===TODAY.month&&s.day>=TODAY.day)),nextShow=upcoming[0];
+function BreweryCard({brewery, forceExpand=false, query=""}) {
+  const [manualExpanded,setManualExpanded]=useState(false);
+  const expanded = forceExpand || manualExpanded;
+  const upcoming = brewery.shows.filter(s=>(s.month>TODAY.month)||(s.month===TODAY.month&&s.day>=TODAY.day));
+  const nextShow  = upcoming[0];
+
+  const breweryMatch = query
+    ? [brewery.name,brewery.area,brewery.vibe,brewery.note].join(" ").toLowerCase().includes(query.toLowerCase())
+    : true;
+  const visibleShows = (query && !breweryMatch)
+    ? brewery.shows.filter(s=>s.artist.toLowerCase().includes(query.toLowerCase())||s.genre.toLowerCase().includes(query.toLowerCase()))
+    : brewery.shows;
+
   return (
-    <div style={{background:"rgba(26,18,8,0.45)",border:`1px solid ${brewery.color}22`,borderRadius:14,overflow:"hidden",marginBottom:10}}>
-      <button onClick={()=>setExpanded(e=>!e)} style={{width:"100%",background:"none",border:"none",cursor:"pointer",padding:"14px 16px",textAlign:"left",display:"flex",alignItems:"center",gap:12}}>
+    <div style={{background:"rgba(26,18,8,0.45)",border:`1px solid ${forceExpand?brewery.color+"55":brewery.color+"22"}`,borderRadius:14,overflow:"hidden",marginBottom:10,transition:"border-color 0.2s"}}>
+      <button onClick={()=>setManualExpanded(e=>!e)} style={{width:"100%",background:"none",border:"none",cursor:"pointer",padding:"14px 16px",textAlign:"left",display:"flex",alignItems:"center",gap:12}}>
         <div style={{fontSize:26,flexShrink:0}}>{brewery.icon}</div>
         <div style={{flex:1,minWidth:0}}>
           <div style={{display:"flex",alignItems:"center",gap:7,flexWrap:"wrap"}}>
-            <span style={{fontSize:14,fontWeight:600,color:T.cream,fontFamily:FONT.display}}>{brewery.name}</span>
-            <span style={{fontSize:9,fontFamily:FONT.mono,color:brewery.color,background:`${brewery.color}15`,border:`1px solid ${brewery.color}33`,borderRadius:8,padding:"1px 7px"}}>{brewery.area}</span>
+            <span style={{fontSize:14,fontWeight:600,color:T.cream,fontFamily:FONT.display}}>
+              <Highlight text={brewery.name} query={query}/>
+            </span>
+            <span style={{fontSize:9,fontFamily:FONT.mono,color:brewery.color,background:`${brewery.color}15`,border:`1px solid ${brewery.color}33`,borderRadius:8,padding:"1px 7px"}}>
+              <Highlight text={brewery.area} query={query}/>
+            </span>
             {brewery.region==="tr"&&<span style={{fontSize:9,fontFamily:FONT.mono,color:T.amber,background:"rgba(200,132,58,0.12)",border:`1px solid rgba(200,132,58,0.3)`,borderRadius:8,padding:"1px 7px"}}>📍 LOCAL</span>}
           </div>
-          <div style={{fontSize:10,color:T.mist,fontFamily:FONT.body,marginTop:3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{brewery.vibe}</div>
-          {nextShow&&<div style={{marginTop:5,fontSize:10,color:brewery.color,fontFamily:FONT.mono}}>▶ Next: {monthName(nextShow.month)} {nextShow.day} — {nextShow.artist}</div>}
+          <div style={{fontSize:10,color:T.mist,fontFamily:FONT.body,marginTop:3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+            <Highlight text={brewery.vibe} query={query}/>
+          </div>
+          {nextShow&&!query&&<div style={{marginTop:5,fontSize:10,color:brewery.color,fontFamily:FONT.mono}}>▶ Next: {monthName(nextShow.month)} {nextShow.day} — {nextShow.artist}</div>}
+          {query&&visibleShows.length>0&&<div style={{marginTop:5,fontSize:10,color:T.amberGlow,fontFamily:FONT.mono}}>
+            🔍 {visibleShows.length} matching show{visibleShows.length!==1?"s":""}
+          </div>}
         </div>
         <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4,flexShrink:0}}>
           <span style={{fontSize:11,fontWeight:700,color:brewery.color,fontFamily:FONT.display}}>{upcoming.length}</span>
@@ -660,41 +669,112 @@ function BreweryCard({brewery}) {
           <div style={{fontSize:10,color:T.mist,fontFamily:FONT.body,marginBottom:8,lineHeight:1.5}}>ℹ {brewery.note}</div>
           <a href={brewery.url} target="_blank" rel="noopener noreferrer" style={{fontSize:10,fontFamily:FONT.mono,color:brewery.color,textDecoration:"none",background:`${brewery.color}12`,border:`1px solid ${brewery.color}33`,borderRadius:8,padding:"4px 12px"}}>🌐 Full Calendar ↗</a>
         </div>
-        <div>{brewery.shows.map((s,i)=><ShowRow key={i} show={s} color={brewery.color}/>)}</div>
+        <div>{visibleShows.map((s,i)=><ShowRow key={i} show={s} color={brewery.color} query={query&&!breweryMatch?query:""}/>)}</div>
       </div>}
     </div>
   );
 }
 
 function BreweriesView() {
-  const [region,setRegion]=useState("all");
-  const shown=region==="all"?BREWERIES:BREWERIES.filter(b=>b.region===region);
-  const twShows=BREWERIES.flatMap(b=>b.shows.filter(s=>{
+  const [region,  setRegion]  = useState("all");
+  const [query,   setQuery]   = useState("");
+  const inputRef = useRef(null);
+
+  const isSearching = query.trim().length > 0;
+  const q = query.trim().toLowerCase();
+
+  const matchedBreweries = useMemo(()=>{
+    if (!isSearching) return null;
+    return BREWERIES.filter(b=>{
+      const breweryText = [b.name,b.area,b.vibe,b.note,b.address].join(" ").toLowerCase();
+      const showText    = b.shows.map(s=>`${s.artist} ${s.genre}`).join(" ").toLowerCase();
+      return breweryText.includes(q) || showText.includes(q);
+    });
+  },[q,isSearching]);
+
+  const regionFiltered = useMemo(()=>
+    region==="all" ? BREWERIES : BREWERIES.filter(b=>b.region===region)
+  ,[region]);
+
+  const displayBreweries = isSearching ? matchedBreweries : regionFiltered;
+
+  const twShows = BREWERIES.flatMap(b=>b.shows.filter(s=>{
     const isPast=(s.month<TODAY.month)||(s.month===TODAY.month&&s.day<TODAY.day);
     return !isPast&&((s.month-TODAY.month)*30+(s.day-TODAY.day))<=7;
   }).map(s=>({...s,brewery:b}))).sort((a,b)=>(a.month*100+a.day)-(b.month*100+b.day));
 
+  const clearSearch = ()=>{ setQuery(""); inputRef.current?.focus(); };
+
   return (
     <div style={{paddingTop:4}}>
-      {twShows.length>0&&<div style={{marginTop:16,marginBottom:18,background:"rgba(26,18,8,0.5)",border:`1px solid rgba(138,184,74,0.2)`,borderRadius:14,padding:"14px 16px"}}>
-        <div style={{fontSize:9,fontFamily:FONT.mono,letterSpacing:2,color:T.fern,marginBottom:10}}>🍺 LIVE THIS WEEK</div>
-        <div style={{display:"flex",flexDirection:"column",gap:7}}>{twShows.map((s,i)=>(
-          <div key={i} style={{display:"flex",alignItems:"center",gap:10}}>
-            <span style={{fontSize:16}}>{s.brewery.icon}</span>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:11,fontWeight:500,color:T.parchment,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontFamily:FONT.body}}>{s.artist}</div>
-              <div style={{fontSize:9,color:T.canopy,fontFamily:FONT.mono}}>{s.brewery.name} · {monthName(s.month)} {s.day} · {s.time}</div>
-            </div>
-            <span style={{fontSize:10,fontFamily:FONT.mono,color:s.price==="Free"?T.fern:T.parchment,fontWeight:600,flexShrink:0}}>{s.price}</span>
-          </div>
-        ))}</div>
-      </div>}
-      <div style={{display:"flex",gap:7,marginBottom:16,flexWrap:"wrap"}}>
-        {[["all","🗺️ All"],["tr","🐇 Travelers Rest"],["gvl","📍 Greenville SC"],["hendo","⛰️ Hendersonville NC"],["mills","🏔 Mills River NC"],["brevard","🌲 Brevard NC"]].map(([val,label])=>(
-          <button key={val} onClick={()=>setRegion(val)} style={{background:region===val?T.mossLight:`rgba(26,18,8,0.5)`,color:region===val?T.cream:T.mist,border:`1px solid ${region===val?T.canopy:"rgba(58,42,24,0.6)"}`,borderRadius:20,padding:"5px 13px",fontSize:10,fontFamily:FONT.body,fontWeight:region===val?600:400,cursor:"pointer",transition:"all 0.15s"}}>{label}</button>
-        ))}
+
+      {/* SEARCH BAR */}
+      <div style={{marginTop:16,marginBottom:4,position:"relative"}}>
+        <div style={{position:"absolute",left:13,top:"50%",transform:"translateY(-50%)",fontSize:14,pointerEvents:"none",opacity:0.5}}>🔍</div>
+        <input
+          ref={inputRef}
+          type="text"
+          placeholder="Search breweries, artists, genres, areas…"
+          value={query}
+          onChange={e=>setQuery(e.target.value)}
+          style={{
+            width:"100%",boxSizing:"border-box",
+            background:"rgba(26,18,8,0.7)",
+            border:`1.5px solid ${isSearching?"rgba(200,132,58,0.5)":"rgba(74,107,42,0.3)"}`,
+            borderRadius:12,padding:"10px 40px 10px 38px",
+            fontSize:13,color:T.parchment,fontFamily:FONT.body,outline:"none",
+            transition:"border-color 0.2s",
+          }}
+        />
+        {isSearching&&(
+          <button onClick={clearSearch} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:18,color:T.mist,lineHeight:1,padding:0}}>×</button>
+        )}
       </div>
-      {shown.map(b=><BreweryCard key={b.id} brewery={b}/>)}
+
+      {/* RESULTS SUMMARY */}
+      {isSearching&&(
+        <div style={{marginBottom:12,display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontSize:11,color:T.amberWarm,fontFamily:FONT.mono}}>
+            {matchedBreweries.length===0 ? "No matches found" : `${matchedBreweries.length} venue${matchedBreweries.length!==1?"s":""} matched`}
+          </span>
+          <button onClick={clearSearch} style={{fontSize:10,fontFamily:FONT.mono,color:T.rust,background:"rgba(192,80,48,0.07)",border:"1px solid rgba(192,80,48,0.2)",borderRadius:6,padding:"2px 9px",cursor:"pointer"}}>clear</button>
+        </div>
+      )}
+
+      {/* REGION + LIVE THIS WEEK (hidden while searching) */}
+      {!isSearching&&(
+        <>
+          {twShows.length>0&&<div style={{marginTop:12,marginBottom:18,background:"rgba(26,18,8,0.5)",border:`1px solid rgba(138,184,74,0.2)`,borderRadius:14,padding:"14px 16px"}}>
+            <div style={{fontSize:9,fontFamily:FONT.mono,letterSpacing:2,color:T.fern,marginBottom:10}}>🍺 LIVE THIS WEEK</div>
+            <div style={{display:"flex",flexDirection:"column",gap:7}}>{twShows.map((s,i)=>(
+              <div key={i} style={{display:"flex",alignItems:"center",gap:10}}>
+                <span style={{fontSize:16}}>{s.brewery.icon}</span>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:11,fontWeight:500,color:T.parchment,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontFamily:FONT.body}}>{s.artist}</div>
+                  <div style={{fontSize:9,color:T.canopy,fontFamily:FONT.mono}}>{s.brewery.name} · {monthName(s.month)} {s.day} · {s.time}</div>
+                </div>
+                <span style={{fontSize:10,fontFamily:FONT.mono,color:s.price==="Free"?T.fern:T.parchment,fontWeight:600,flexShrink:0}}>{s.price}</span>
+              </div>
+            ))}</div>
+          </div>}
+          <div style={{display:"flex",gap:7,marginBottom:16,flexWrap:"wrap"}}>
+            {[["all","🗺️ All"],["tr","🐇 Travelers Rest"],["gvl","📍 Greenville SC"],["hendo","⛰️ Hendersonville NC"],["mills","🏔 Mills River NC"],["brevard","🌲 Brevard NC"]].map(([val,label])=>(
+              <button key={val} onClick={()=>setRegion(val)} style={{background:region===val?T.mossLight:`rgba(26,18,8,0.5)`,color:region===val?T.cream:T.mist,border:`1px solid ${region===val?T.canopy:"rgba(58,42,24,0.6)"}`,borderRadius:20,padding:"5px 13px",fontSize:10,fontFamily:FONT.body,fontWeight:region===val?600:400,cursor:"pointer",transition:"all 0.15s"}}>{label}</button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* CARDS */}
+      {displayBreweries.length===0&&isSearching ? (
+        <div style={{textAlign:"center",padding:"40px 0",fontFamily:FONT.body,fontSize:13,color:T.canopy,fontStyle:"italic"}}>
+          No breweries or shows match "{query}"
+        </div>
+      ) : (
+        displayBreweries.map(b=>(
+          <BreweryCard key={b.id} brewery={b} forceExpand={isSearching} query={isSearching?query:""}/>
+        ))
+      )}
     </div>
   );
 }
@@ -716,21 +796,14 @@ export default function App() {
 
   return (
     <div style={{minHeight:"100vh",background:`linear-gradient(180deg,#0e1a08 0%,#0a0e06 60%,#090c05 100%)`,color:T.parchment,fontFamily:FONT.body,paddingBottom:48}}>
-
-      {/* HEADER */}
       <div style={{background:`linear-gradient(180deg,#16260e 0%,rgba(14,26,8,0.95) 100%)`,borderBottom:`1px solid rgba(74,107,42,0.25)`,padding:"22px 20px 18px",position:"relative",overflow:"hidden"}}>
-        {/* subtle radial glow */}
         <div style={{position:"absolute",top:-60,left:"30%",width:320,height:200,background:"radial-gradient(ellipse,rgba(106,156,56,0.08),transparent 70%)",pointerEvents:"none"}}/>
         <div style={{maxWidth:740,margin:"0 auto",position:"relative"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10}}>
             <div>
               <div style={{fontFamily:FONT.mono,fontSize:9,letterSpacing:3,color:T.canopy,marginBottom:6,textTransform:"uppercase"}}>📍 Travelers Rest, SC · 29690</div>
-              <h1 style={{margin:0,fontSize:28,fontWeight:700,color:T.cream,lineHeight:1.1,fontFamily:FONT.display,letterSpacing:"-0.5px"}}>
-                TR Local Guide
-              </h1>
-              <div style={{fontSize:12,color:T.mist,marginTop:4,fontFamily:FONT.body,letterSpacing:"0.3px"}}>
-                Weather · Events · Sports · Brewery Music
-              </div>
+              <h1 style={{margin:0,fontSize:28,fontWeight:700,color:T.cream,lineHeight:1.1,fontFamily:FONT.display,letterSpacing:"-0.5px"}}>TR Local Guide</h1>
+              <div style={{fontSize:12,color:T.mist,marginTop:4,fontFamily:FONT.body,letterSpacing:"0.3px"}}>Weather · Events · Sports · Brewery Music</div>
             </div>
             <div style={{textAlign:"right"}}>
               <div style={{display:"flex",alignItems:"center",gap:5,justifyContent:"flex-end",marginBottom:4}}>
@@ -740,9 +813,7 @@ export default function App() {
               <div style={{fontSize:9,color:T.canopy,fontFamily:FONT.mono}}>Open-Meteo · GVLtoday</div>
             </div>
           </div>
-
           <ForestDivider/>
-
           <div style={{marginTop:10,display:"flex",gap:18,flexWrap:"wrap"}}>
             {[{label:"Events",val:upcomingEvents,color:T.cream},{label:"This Week",val:thisWeekEvents,color:T.fern},{label:"Home Games",val:upcomingGames,color:T.dew},{label:"Live Music",val:upcomingShows,color:T.amberGlow}].map(({label,val,color})=>(
               <div key={label} style={{textAlign:"center"}}>
@@ -753,8 +824,6 @@ export default function App() {
           </div>
         </div>
       </div>
-
-      {/* TAB BAR */}
       <div style={{background:"rgba(10,14,6,0.97)",borderBottom:`1px solid rgba(58,42,24,0.5)`,position:"sticky",top:0,zIndex:10,backdropFilter:"blur(8px)"}}>
         <div style={{maxWidth:740,margin:"0 auto",padding:"0 16px",display:"flex"}}>
           {TABS.map(tab=>(
@@ -764,8 +833,6 @@ export default function App() {
           ))}
         </div>
       </div>
-
-      {/* CONTENT */}
       <div style={{maxWidth:740,margin:"0 auto",padding:"0 16px"}}>
         {activeTab==="weather"    && <WeatherView/>}
         {activeTab==="events"     && <EventsView/>}
